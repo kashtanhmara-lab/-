@@ -1,0 +1,8 @@
+flask==2.3.3
+folium==0.14.0
+geopy==2.3.0
+pandas==2.1.4
+requests==2.31.0
+numpy==1.26.0
+scipy==1.10.1
+ortools==9.7.2996

@@ -1,0 +1,436 @@
+/* ===== ОСНОВНЫЕ СТИЛИ ===== */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+    overflow-x: hidden;
+}
+
+/* ===== КАРТА ===== */
+#map {
+    height: 600px;
+    width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+/* ===== КОНТЕЙНЕРЫ ===== */
+.sidebar-container {
+    height: calc(100vh - 100px);
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.address-list-container,
+.schedule-container {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 5px;
+    padding: 10px;
+    background: #f8f9fa;
+}
+
+.schedule-container {
+    max-height: 300px;
+}
+
+/* ===== ЭЛЕМЕНТЫ СПИСКА АДРЕСОВ ===== */
+.address-item {
+    padding: 10px 30px 10px 10px; /* Отступ справа для крестика */
+    border: 1px solid #e0e0e0;
+    border-radius: 5px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: white;
+    position: relative;
+}
+
+.address-item:hover {
+    background-color: #f0f8ff;
+    border-color: #007bff;
+}
+
+.address-item.vip {
+    border-left: 4px solid #ffc107;
+    background-color: #fffaf0;
+}
+
+.address-item.standard {
+    border-left: 4px solid #6c757d;
+}
+
+.address-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 5px;
+}
+
+.address-header strong {
+    flex-grow: 1;
+    margin-right: 10px;
+}
+
+.address-details {
+    font-size: 0.85em;
+    color: #6c757d;
+}
+
+.form-check-label {
+    cursor: pointer;
+    width: 100%;
+}
+
+.form-check-input {
+    z-index: 5;
+    position: relative;
+}
+
+/* ===== КНОПКА УДАЛЕНИЯ ===== */
+.delete-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    font-size: 14px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: all 0.3s ease;
+    z-index: 10;
+    line-height: 1;
+    padding: 0;
+}
+
+.delete-btn:hover {
+    opacity: 1;
+    background: #c82333;
+    transform: scale(1.1);
+}
+
+/* ===== ЭЛЕМЕНТЫ РАСПИСАНИЯ ===== */
+.schedule-item {
+    display: flex;
+    padding: 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    background: white;
+    border-left: 4px solid #007bff;
+    transition: transform 0.2s;
+}
+
+.schedule-item:hover {
+    transform: translateX(5px);
+}
+
+.schedule-item.vip {
+    border-left-color: #ffc107;
+    background-color: #fffaf0;
+}
+
+.schedule-order {
+    background: #007bff;
+    color: white;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.schedule-item.vip .schedule-order {
+    background: #ffc107;
+}
+
+.schedule-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.schedule-time {
+    font-weight: bold;
+    color: #007bff;
+    font-size: 1em;
+}
+
+.schedule-address {
+    margin: 5px 0;
+    font-weight: 500;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.schedule-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85em;
+    color: #6c757d;
+}
+
+.duration {
+    background: #e9ecef;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+}
+
+/* ===== КАРТОЧКА РЕЗУЛЬТАТОВ ===== */
+.results-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.results-card .card-body {
+    background: white;
+    color: #333;
+    margin: 1px;
+    border-radius: 4px;
+}
+
+.route-summary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px;
+    border-radius: 8px;
+    margin: -10px -10px 15px -10px;
+}
+
+.stat-number {
+    font-size: 1.8em;
+    font-weight: bold;
+    color: #007bff;
+}
+
+/* ===== УВЕДОМЛЕНИЯ И СТАТУСЫ ===== */
+.alert-container {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 1000;
+    min-width: 300px;
+    max-width: 400px;
+}
+
+.alert {
+    margin-bottom: 1rem;
+    border-radius: 8px;
+}
+
+.location-status {
+    background: #e3f2fd;
+    border: 1px solid #2196f3;
+    border-radius: 5px;
+    padding: 8px;
+    margin-bottom: 10px;
+    font-size: 0.9em;
+}
+
+/* ===== МАРКЕРЫ КАРТЫ ===== */
+.custom-marker {
+    background: white;
+    border: 3px solid;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 12px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.map-label {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 2px black;
+    margin-top: -8px;
+}
+
+/* ===== СКРОЛЛБАРЫ ===== */
+.address-list-container::-webkit-scrollbar,
+.schedule-container::-webkit-scrollbar,
+.sidebar-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.address-list-container::-webkit-scrollbar-track,
+.schedule-container::-webkit-scrollbar-track,
+.sidebar-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.address-list-container::-webkit-scrollbar-thumb,
+.schedule-container::-webkit-scrollbar-thumb,
+.sidebar-container::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.address-list-container::-webkit-scrollbar-thumb:hover,
+.schedule-container::-webkit-scrollbar-thumb:hover,
+.sidebar-container::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* ===== АНИМАЦИИ ===== */
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.loading {
+    animation: pulse 1.5s infinite;
+}
+
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* ===== КЛАССЫ-ПОМОЩНИКИ ===== */
+.progress {
+    height: 8px;
+}
+
+.badge.bg-warning {
+    color: #000;
+}
+
+/* ===== СКРЫТЫЕ ЭЛЕМЕНТЫ КАРТЫ ===== */
+.leaflet-control-attribution img,
+.leaflet-control-attribution a[href*="flag"],
+.leaflet-control-attribution .leaflet-attribution-flag {
+    display: none !important;
+}
+
+.leaflet-routing-container {
+    background: white;
+    width: 320px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* ===== АДАПТИВНОСТЬ ===== */
+
+/* Планшеты и маленькие экраны */
+@media (max-width: 768px) {
+    #map {
+        height: 400px;
+    }
+    
+    .sidebar-container {
+        height: auto;
+        max-height: 500px;
+    }
+    
+    .address-list-container {
+        max-height: 300px;
+    }
+    
+    .container-fluid {
+        padding-left: 5px;
+        padding-right: 5px;
+    }
+    
+    .row {
+        margin-left: -5px;
+        margin-right: -5px;
+    }
+    
+    .col-md-4, .col-md-8 {
+        padding-left: 5px;
+        padding-right: 5px;
+    }
+    
+    .navbar-brand {
+        font-size: 1.1rem;
+    }
+    
+    .card-body {
+        padding: 10px;
+    }
+    
+    .alert-container {
+        position: fixed;
+        top: 60px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+    
+    .address-header {
+        flex-direction: column;
+    }
+    
+    .address-header .badge {
+        align-self: flex-start;
+        margin-top: 5px;
+    }
+    
+    .delete-btn {
+        top: 5px;
+        right: 5px;
+        width: 20px;
+        height: 20px;
+        font-size: 12px;
+    }
+    
+    .address-item {
+        padding-right: 25px;
+    }
+    
+    #importStatus .alert {
+        font-size: 0.8em;
+        padding: 8px;
+    }
+    
+    .form-text {
+        font-size: 0.75em;
+    }
+}
+
+/* Мобильные телефоны */
+@media (max-width: 576px) {
+    #map {
+        height: 300px;
+    }
+    
+    .stat-number {
+        font-size: 1.2em;
+    }
+    
+    .schedule-item {
+        flex-direction: column;
+    }
+    
+    .schedule-order {
+        margin-right: 0;
+        margin-bottom: 8px;
+    }
+}
+
+/* ===== ФОРМЫ И ИМПОРТ ===== */
+#importStatus {
+    font-size: 0.9em;
+}

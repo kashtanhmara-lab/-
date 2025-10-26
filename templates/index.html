@@ -1,0 +1,1670 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Система интеллектуального планирования выездов для предпринимателей</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    <style>
+        /* === ОСНОВНЫЕ СТИЛИ === */
+        body {
+            overflow-x: hidden;
+        }
+        
+        #map {
+            height: 600px;
+            width: 100%;
+            border-radius: 8px;
+        }
+        
+        .sidebar-container {
+            height: calc(100vh - 100px);
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        
+        /* === КОМПОНЕНТЫ СПИСКОВ === */
+        .address-list-container,
+        .schedule-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            padding: 10px;
+            background: #f8f9fa;
+        }
+        
+        .address-item,
+        .schedule-item {
+            padding: 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            margin-bottom: 8px;
+            background: white;
+            position: relative;
+        }
+        
+        .address-item {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .address-item:hover {
+            background-color: #f0f8ff;
+            border-color: #007bff;
+        }
+        
+        /* === СТИЛИ ДЛЯ ТИПОВ КЛИЕНТОВ === */
+        .address-item.vip,
+        .schedule-item.vip {
+            border-left: 4px solid #ffc107;
+            background-color: #fffaf0;
+        }
+        
+        .address-item.standard,
+        .schedule-item.standard {
+            border-left: 4px solid #6c757d;
+        }
+        
+        /* === ЗАГОЛОВКИ И ДЕТАЛИ === */
+        .address-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 5px;
+        }
+        
+        .address-details {
+            font-size: 0.85em;
+        }
+        
+        /* === КНОПКИ УДАЛЕНИЯ === */
+        .delete-btn {
+            position: absolute;
+            top: 75px;
+            right: 5px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+        
+        .delete-btn:hover {
+            opacity: 1;
+            background: #c82333;
+        }
+        
+        /* === РАСПИСАНИЕ === */
+        .schedule-item {
+            display: flex;
+        }
+        
+        .schedule-order {
+            background: #007bff;
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        
+        .schedule-content {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .schedule-address {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        /* === СТАТИСТИКА === */
+        .stat-number {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        /* === УВЕДОМЛЕНИЯ === */
+        .alert-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 1000;
+            min-width: 300px;
+            max-width: 400px;
+        }
+        
+        /* === МАРКЕРЫ КАРТЫ === */
+        .custom-marker {
+            background: white;
+            border: 3px solid;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        
+        .location-status {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 5px;
+            padding: 8px;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+        
+        /* === СКРЫТИЕ АТТРИБУЦИИ === */
+        .leaflet-control-attribution img,
+        .leaflet-control-attribution a[href*="flag"],
+        .leaflet-control-attribution .leaflet-attribution-flag {
+            display: none !important;
+        }
+        
+        /* === СТИЛИ ДЛЯ ROUTING MACHINE === */
+        .leaflet-routing-container {
+            background: white;
+            width: 320px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        /* === КАСТОМНЫЕ СКРОЛЛБАРЫ === */
+        .address-list-container::-webkit-scrollbar,
+        .schedule-container::-webkit-scrollbar,
+        .sidebar-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .address-list-container::-webkit-scrollbar-track,
+        .schedule-container::-webkit-scrollbar-track,
+        .sidebar-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .address-list-container::-webkit-scrollbar-thumb,
+        .schedule-container::-webkit-scrollbar-thumb,
+        .sidebar-container::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        
+        .address-list-container::-webkit-scrollbar-thumb:hover,
+        .schedule-container::-webkit-scrollbar-thumb:hover,
+        .sidebar-container::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+    </style>
+</head>
+<body>
+    <!-- === НАВИГАЦИЯ === -->
+    <nav class="navbar navbar-dark bg-primary">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">🗺️ Планировщик маршрутов (Leaflet)</span>
+        </div>
+    </nav>
+
+    <!-- === КОНТЕЙНЕР ДЛЯ УВЕДОМЛЕНИЙ === -->
+    <div class="alert-container" id="alertContainer"></div>
+
+    <!-- === ОСНОВНОЙ КОНТЕНТ === -->
+    <div class="container-fluid mt-3">
+        <div class="row">
+            <!-- === БОКОВАЯ ПАНЕЛЬ === -->
+            <div class="col-md-4">
+                <div class="sidebar-container">
+                    <!-- Блок быстрого старта -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">🚀 Быстрый старт</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">Выберите до 15 точек для построения оптимального маршрута с учетом времени работы и приоритета клиентов.</p>
+                            <div class="location-status" id="locationStatus">
+                                <strong>📍 Текущее местоположение:</strong><br>
+                                <span id="locationText">Определяем...</span>
+                            </div>
+                            <small class="text-muted" id="fileInfo">Загрузка информации о файле...</small>
+                        </div>
+                    </div>
+
+                    <!-- Шаг 1: Выбор точек -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">📍 Шаг 1: Выбор точек</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">Поиск адреса:</label>
+                                <input type="text" class="form-control" id="addressSearch" placeholder="Введите адрес для поиска...">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Фильтр по типу клиента:</label>
+                                <select class="form-select" id="clientTypeFilter">
+                                    <option value="all">Все клиенты</option>
+                                    <option value="vip">VIP клиенты</option>
+                                    <option value="standard">Стандартные клиенты</option>
+                                </select>
+                            </div>
+
+                            <div class="address-list-container">
+                                <div class="address-list" id="addressList">
+                                    <div class="text-center py-3">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Загрузка адресов...</span>
+                                        </div>
+                                        <p class="mt-2">Загрузка адресов из файла...</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <button id="updateLocationBtn" class="btn btn-outline-info btn-sm w-100">
+                                    🔄 Обновить местоположение
+                                </button>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <small class="text-muted">Выбрано: <span id="selectedCount">0</span>/15 точек</small>
+                                <div class="progress mt-1">
+                                    <div id="selectionProgress" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                                </div>
+                            </div>
+
+                            <div class="mt-2">
+                                <button id="clearSelectionBtn" class="btn btn-outline-secondary btn-sm w-100">
+                                    🧹 Очистить выбор
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Импорт новых точек -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">📥 Импорт новых точек</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">Загрузить CSV файл:</label>
+                                <input type="file" class="form-control" id="csvFile" accept=".csv">
+                                <small class="form-text text-muted">
+                                    Формат CSV: Адрес объекта, Географическая широта, Географическая долгота, 
+                                    Время начала рабочего дня, Время окончания рабочего дня, Время начала обеда, Время окончания обеда,Уровень клиента 
+                                </small>
+                            </div>
+                            <button class="btn btn-outline-primary btn-sm w-100 mb-3" id="uploadCsvBtn">
+                                📤 Загрузить CSV
+                            </button>
+                            
+                            <hr>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Добавить одну точку:</label>
+                                <input type="text" class="form-control mb-2" id="newAddress" placeholder="Адрес">
+                                <div class="row mb-2">
+                                    <div class="col-6">
+                                        <input type="number" class="form-control" id="newLat" placeholder="Широта" step="any">
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="number" class="form-control" id="newLon" placeholder="Долгота" step="any">
+                                    </div>
+                                </div>
+                                <select class="form-select mb-2" id="newClientType">
+                                    <option value="VIP">VIP</option>
+                                    <option value="Standard">Standard</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-outline-success btn-sm w-100" id="addSingleAddressBtn">
+                                ➕ Добавить точку
+                            </button>
+                            
+                            <div class="mt-3">
+                                <div id="importStatus"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Управление точками -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">🗑️ Управление точками</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">Удалить точку из списка:</label>
+                                <select class="form-select" id="deleteAddressSelect">
+                                    <option value="">Выберите адрес для удаления</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-outline-danger btn-sm w-100 mb-2" id="deleteAddressBtn" disabled>
+                                🗑️ Удалить выбранную точку
+                            </button>
+                            <button class="btn btn-outline-warning btn-sm w-100" id="deleteAllAddressesBtn">
+                                🗑️ Удалить все точки
+                            </button>
+                            <div class="mt-2">
+                                <small class="text-muted">Всего точек в базе: <span id="totalAddressesCount">0</span></small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Шаг 2: Построение маршрута -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">🎯 Шаг 2: Построение маршрута</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="avoidTraffic" checked>
+                                <label class="form-check-label" for="avoidTraffic">
+                                    🚦 Учитывать пробки и ДТП (TomTom)
+                                </label>
+                            </div>
+                            <button class="btn btn-primary w-100" id="optimizeBtn" disabled>
+                                <span class="spinner-border spinner-border-sm d-none" id="optimizeSpinner"></span>
+                                🚀 Построить оптимальный маршрут
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Информация о пробках -->
+                    <div class="traffic-info alert alert-info mt-3" id="trafficInfo" style="display: none;">
+                        <h6>🚦 Информация о пробках:</h6>
+                        <div id="trafficDetails"></div>
+                    </div>
+
+                    <!-- Результаты маршрута -->
+                    <div class="card results-card" id="resultsCard" style="display: none;">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">📋 Результаты маршрута</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="route-summary mb-3">
+                                <div class="row text-center">
+                                    <div class="col-4">
+                                        <div class="stat-number" id="totalPoints">0</div>
+                                        <small class="text-muted">Точек</small>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="stat-number" id="totalDistance">0</div>
+                                        <small class="text-muted">Км</small>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="stat-number" id="totalTime">0</div>
+                                        <small class="text-muted">Часов</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="schedule-container">
+                                <h6>Расписание посещений:</h6>
+                                <div class="schedule" id="schedule">
+                                    <!-- Расписание будет здесь -->
+                                </div>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <button class="btn btn-success w-100" id="exportBtn">
+                                    📤 Экспорт в CSV
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- === КАРТА === -->
+            <div class="col-md-8">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">🗺️ Карта маршрута (Leaflet)</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="map">
+                            <div class="text-center py-5">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Загрузка карты...</span>
+                                </div>
+                                <p class="mt-2">Инициализация карты...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- === БИБЛИОТЕКИ === -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+    
+    <script>
+        // === КОНФИГУРАЦИЯ И ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ===
+        const MAX_POINTS = 15;
+        
+        let selectedPoints = new Map(); // Теперь храним объекты адресов
+        let userLocation = [47.222, 39.715]; // Центр Ростова по умолчанию
+        let map = null;
+        let routeLayer = null;
+        let addressMarkers = [];
+        let userLocationMarker = null;
+        let routingControl = null;
+        let allAddresses = [];
+
+        // === УТИЛИТЫ ===
+        
+        /**
+         * Показать уведомление
+         * @param {string} message - Текст сообщения
+         * @param {string} type - Тип уведомления (info, success, warning, danger)
+         */
+        function showAlert(message, type = 'info') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertId = 'alert-' + Date.now();
+            
+            const alertDiv = document.createElement('div');
+            alertDiv.id = alertId;
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${type === 'success' ? '✅' : type === 'warning' ? '⚠️' : type === 'danger' ? '❌' : 'ℹ️'} 
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            alertContainer.appendChild(alertDiv);
+            
+            // Автоудаление через 5 секунд
+            setTimeout(() => {
+                const alert = document.getElementById(alertId);
+                if (alert) alert.remove();
+            }, 5000);
+        }
+
+        /**
+         * Получить текстовое описание уровня пробок
+         * @param {string} level - Уровень пробок
+         * @returns {string} Текстовое описание
+         */
+        function getTrafficLevelText(level) {
+            const levels = {
+                'low': 'Низкие',
+                'medium': 'Средние', 
+                'high': 'Высокие',
+                'very_high': 'Очень высокие'
+            };
+            return levels[level] || level;
+        }
+
+        // === РАБОТА С КАРТОЙ ===
+        
+        /**
+         * Инициализация карты Leaflet
+         */
+        function initMap() {
+            map = L.map('map').setView(userLocation, 12);
+
+            // Добавляем бесплатные тайлы OpenStreetMap
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 18
+            }).addTo(map);
+
+            console.log('🗺️ Карта Leaflet инициализирована');
+            showAlert('Карта загружена', 'success');
+            
+            // Определяем местоположение при загрузке
+            getUserLocation();
+        }
+
+        /**
+         * Определение местоположения пользователя
+         */
+        function getUserLocation() {
+            if (navigator.geolocation) {
+                document.getElementById('locationText').textContent = 'Определяем ваше местоположение...';
+                showAlert('Определение вашего местоположения...', 'info');
+                
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        userLocation = [position.coords.latitude, position.coords.longitude];
+                        console.log("📍 Местоположение определено:", userLocation);
+                        
+                        // Обновляем текст местоположения
+                        document.getElementById('locationText').innerHTML = 
+                            `<strong>Широта:</strong> ${userLocation[0].toFixed(4)}<br>` +
+                            `<strong>Долгота:</strong> ${userLocation[1].toFixed(4)}`;
+                        
+                        showAlert('Ваше местоположение определено! Маршрут будет построен отсюда.', 'success');
+                        
+                        // Обновляем маркер на карте
+                        updateUserLocationMarker();
+                        
+                        // Перемещаем карту на новое местоположение
+                        if (map) {
+                            map.setView(userLocation, 13);
+                        }
+                    },
+                    function(error) {
+                        console.log("Ошибка геолокации:", error);
+                        document.getElementById('locationText').innerHTML = 
+                            'Не удалось определить местоположение. Используется центр Ростова-на-Дону.<br>' +
+                            `<strong>Широта:</strong> ${userLocation[0].toFixed(4)}<br>` +
+                            `<strong>Долгота:</strong> ${userLocation[1].toFixed(4)}`;
+                        showAlert('Не удалось определить местоположение. Используется центр города.', 'warning');
+                        
+                        // Все равно показываем маркер центра
+                        updateUserLocationMarker();
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 60000
+                    }
+                );
+            } else {
+                document.getElementById('locationText').innerHTML = 
+                    'Геолокация не поддерживается браузером. Используется центр Ростова-на-Дону.<br>' +
+                    `<strong>Широта:</strong> ${userLocation[0].toFixed(4)}<br>` +
+                    `<strong>Долгота:</strong> ${userLocation[1].toFixed(4)}`;
+                showAlert('Геолокация не поддерживается браузером', 'warning');
+                updateUserLocationMarker();
+            }
+        }
+
+        /**
+         * Обновление маркера местоположения пользователя
+         */
+        function updateUserLocationMarker() {
+            // Удаляем старый маркер
+            if (userLocationMarker) {
+                map.removeLayer(userLocationMarker);
+            }
+            
+            // Добавляем новый маркер
+            userLocationMarker = L.marker(userLocation)
+                .addTo(map)
+                .bindPopup('📍 <strong>Ваше текущее местоположение</strong><br>Отсюда будет построен маршрут')
+                .openPopup();
+        }
+
+        // === РАБОТА С АДРЕСАМИ ===
+        
+        /**
+         * Загрузка адресов из файла
+         */
+        async function loadAddresses() {
+            try {
+                // Загружаем CSV файл
+                const response = await fetch('addresses.csv');
+                
+                if (!response.ok) {
+                    throw new Error(`Ошибка загрузки файла: ${response.status}`);
+                }
+                
+                const csvText = await response.text();
+                const addresses = parseCSV(csvText);
+                
+                allAddresses = addresses;
+                populateAddressList(addresses);
+                populateDeleteAddressSelect(addresses);
+                updateFileInfo(addresses.length);
+                showAlert(`Загружено ${addresses.length} адресов из файла`, 'success');
+                
+            } catch (error) {
+                console.error('❌ Ошибка загрузки адресов:', error);
+                showAlert('Ошибка загрузки адресов: ' + error.message, 'danger');
+                
+                // Показываем сообщение об ошибке
+                document.getElementById('addressList').innerHTML = `
+                    <div class="alert alert-danger">
+                        <strong>❌ Ошибка загрузки файла</strong><br>
+                        ${error.message}<br>
+                        <small>Убедитесь, что файл addresses.csv существует в корневой папке</small>
+                    </div>
+                `;
+            }
+        }
+
+        /**
+         * Парсинг CSV файла с новым форматом
+         * @param {string} csvText - Текст CSV файла
+         * @returns {Array} Массив объектов адресов
+         */
+        function parseCSV(csvText) {
+            const lines = csvText.split('\n').filter(line => line.trim() !== '');
+            const addresses = [];
+            
+            // Пропускаем заголовок
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i];
+                
+                // Улучшенный парсинг CSV с учетом кавычек
+                const parts = [];
+                let currentPart = '';
+                let inQuotes = false;
+                
+                for (let j = 0; j < line.length; j++) {
+                    const char = line[j];
+                    
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        parts.push(currentPart.trim());
+                        currentPart = '';
+                    } else {
+                        currentPart += char;
+                    }
+                }
+                parts.push(currentPart.trim());
+                
+                // Очищаем кавычки если есть
+                const cleanParts = parts.map(part => part.replace(/^"|"$/g, ''));
+                
+                if (cleanParts.length >= 8) {
+                    // Исправляем опечатку "Standart" -> "Standard"
+                    let clientType = cleanParts[7] || 'Standard';
+                    if (clientType === 'Standart') {
+                        clientType = 'Standard';
+                    }
+                    
+                    const address = {
+                        id: i,
+                        address: cleanParts[0] || `Адрес ${i}`,
+                        lat: parseFloat(cleanParts[1]) || (47.222 + (Math.random() - 0.5) * 0.1),
+                        lon: parseFloat(cleanParts[2]) || (39.715 + (Math.random() - 0.5) * 0.1),
+                        work_time_start: cleanParts[3] || '09:00',
+                        work_time_end: cleanParts[4] || '18:00',
+                        lunch_start: cleanParts[5] || '13:00',
+                        lunch_end: cleanParts[6] || '14:00',
+                        client_type: clientType,
+                        visit_duration: clientType === 'VIP' ? '45' : '30'
+                    };
+                    
+                    addresses.push(address);
+                } else {
+                    console.warn(`Пропущена строка ${i}: недостаточно данных`, cleanParts);
+                }
+            }
+            
+            return addresses;
+        }
+
+        /**
+         * Обновление информации о файле
+         * @param {number} count - Количество адресов
+         */
+        function updateFileInfo(count) {
+            const fileInfo = document.getElementById('fileInfo');
+            if (fileInfo) {
+                fileInfo.textContent = `Загружено ${count} адресов из файла addresses.csv`;
+            }
+        }
+
+        /**
+         * Заполнение списка адресов
+         * @param {Array} addresses - Массив адресов
+         */
+        function populateAddressList(addresses) {
+            const container = document.getElementById('addressList');
+            container.innerHTML = '';
+
+            if (addresses.length === 0) {
+                container.innerHTML = `
+                    <div class="alert alert-warning">
+                        <strong>⚠️ Файл пуст</strong><br>
+                        Файл addresses.csv не содержит данных
+                    </div>
+                `;
+                return;
+            }
+
+            let vipCount = 0;
+            let standardCount = 0;
+
+            addresses.forEach(address => {
+                const clientType = address.client_type;
+                const isVip = clientType === 'VIP';
+                
+                if (isVip) vipCount++;
+                else standardCount++;
+
+                const div = document.createElement('div');
+                div.className = `address-item ${isVip ? 'vip' : 'standard'}`;
+                div.innerHTML = `
+                    <button class="delete-btn" data-address-id="${address.id}" title="Удалить точку">×</button>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" 
+                               value="${address.id}" 
+                               id="address-${address.id}">
+                        <label class="form-check-label" for="address-${address.id}">
+                            <div class="address-header">
+                                <strong>${address.address}</strong>
+                                <span class="badge ${isVip ? 'bg-warning' : 'bg-secondary'}">
+                                    ${isVip ? 'VIP' : 'Standard'}
+                                </span>
+                            </div>
+                            <div class="address-details">
+                                <small class="text-muted">
+                                    ⏰ ${address.work_time_start}-${address.work_time_end} | 
+                                    🍽️ ${address.lunch_start}-${address.lunch_end} |
+                                    📍 ${address.visit_duration} мин
+                                </small>
+                            </div>
+                        </label>
+                    </div>
+                `;
+                container.appendChild(div);
+                
+                // Обработчик изменения checkbox
+                const checkbox = div.querySelector('input');
+                checkbox.addEventListener('change', function() {
+                    toggleAddress(address);
+                });
+
+                // Обработчик кнопки удаления
+                const deleteBtn = div.querySelector('.delete-btn');
+                deleteBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    deleteAddress(address.id);
+                });
+            });
+
+            // Добавляем статистику
+            const statsDiv = document.createElement('div');
+            statsDiv.className = 'mt-3 p-2 bg-light rounded';
+            statsDiv.innerHTML = `
+                <small class="text-muted">
+                    <strong>Статистика:</strong> Всего: ${addresses.length} | 
+                    <span class="text-warning">VIP: ${vipCount}</span> | 
+                    <span class="text-secondary">Standard: ${standardCount}</span>
+                </small>
+            `;
+            container.appendChild(statsDiv);
+
+            // Обновляем счетчик всех точек
+            document.getElementById('totalAddressesCount').textContent = addresses.length;
+        }
+
+        /**
+         * Заполнение выпадающего списка для удаления
+         * @param {Array} addresses - Массив адресов
+         */
+        function populateDeleteAddressSelect(addresses) {
+            const select = document.getElementById('deleteAddressSelect');
+            select.innerHTML = '<option value="">Выберите адрес для удаления</option>';
+            
+            addresses.forEach(address => {
+                const option = document.createElement('option');
+                option.value = address.id;
+                option.textContent = `${address.address} (${address.client_type})`;
+                select.appendChild(option);
+            });
+
+            // Обновляем состояние кнопки удаления
+            updateDeleteButtonState();
+        }
+
+        /**
+         * Обновление состояния кнопки удаления
+         */
+        function updateDeleteButtonState() {
+            const select = document.getElementById('deleteAddressSelect');
+            const deleteBtn = document.getElementById('deleteAddressBtn');
+            deleteBtn.disabled = !select.value;
+        }
+
+        /**
+         * Переключение выбора адреса
+         * @param {Object} address - Объект адреса
+         */
+        function toggleAddress(address) {
+            const checkbox = document.getElementById(`address-${address.id}`);
+            
+            if (checkbox.checked) {
+                if (selectedPoints.size >= MAX_POINTS) {
+                    showAlert(`Максимум ${MAX_POINTS} точек за один раз`, 'warning');
+                    checkbox.checked = false;
+                    return;
+                }
+                selectedPoints.set(address.id, address);
+                
+                // Добавляем маркер на карту
+                if (map) {
+                    const marker = L.marker([address.lat, address.lon])
+                        .addTo(map)
+                        .bindPopup(`
+                            <strong>${address.address}</strong><br>
+                            <span class="badge ${address.client_type === 'VIP' ? 'bg-warning' : 'bg-secondary'}">
+                                ${address.client_type === 'VIP' ? 'VIP' : 'Standard'}
+                            </span>
+                        `);
+                    
+                    addressMarkers.push({id: address.id, marker: marker});
+                }
+            } else {
+                selectedPoints.delete(address.id);
+                // Удаляем маркер с карты
+                const markerIndex = addressMarkers.findIndex(m => m.id === address.id);
+                if (markerIndex !== -1) {
+                    map.removeLayer(addressMarkers[markerIndex].marker);
+                    addressMarkers.splice(markerIndex, 1);
+                }
+            }
+            
+            updateSelectionCount();
+        }
+
+        /**
+         * Обновление счетчика выбранных точек
+         */
+        function updateSelectionCount() {
+            const count = selectedPoints.size;
+            document.getElementById('selectedCount').textContent = count;
+            document.getElementById('optimizeBtn').disabled = count === 0;
+            
+            const progress = (count / MAX_POINTS) * 100;
+            const progressBar = document.getElementById('selectionProgress');
+            progressBar.style.width = `${progress}%`;
+            
+            if (progress < 50) {
+                progressBar.className = 'progress-bar bg-success';
+            } else if (progress < 80) {
+                progressBar.className = 'progress-bar bg-warning';
+            } else {
+                progressBar.className = 'progress-bar bg-danger';
+            }
+        }
+
+        /**
+         * Удаление точки
+         * @param {number} addressId - ID адреса для удаления
+         */
+        async function deleteAddress(addressId) {
+            if (!confirm('Вы уверены, что хотите удалить эту точку?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/delete_address', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ address_id: addressId })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert(result.message, 'success');
+                    
+                    // Удаляем точку из выбранных, если она была выбрана
+                    if (selectedPoints.has(addressId)) {
+                        selectedPoints.delete(addressId);
+                        const checkbox = document.getElementById(`address-${addressId}`);
+                        if (checkbox) checkbox.checked = false;
+                        
+                        // Удаляем маркер с карты
+                        const markerIndex = addressMarkers.findIndex(m => m.id === addressId);
+                        if (markerIndex !== -1) {
+                            map.removeLayer(addressMarkers[markerIndex].marker);
+                            addressMarkers.splice(markerIndex, 1);
+                        }
+                        
+                        updateSelectionCount();
+                    }
+                    
+                    // Перезагружаем список адресов
+                    await reloadAddressesFromServer();
+                    
+                } else {
+                    showAlert('Ошибка: ' + result.error, 'danger');
+                }
+                
+            } catch (error) {
+                console.error('Ошибка удаления адреса:', error);
+                showAlert('Ошибка удаления адреса: ' + error.message, 'danger');
+            }
+        }
+
+        /**
+         * Удаление всех адресов
+         */
+        async function deleteAllAddresses() {
+            if (!confirm('Вы уверены, что хотите удалить ВСЕ точки? Это действие нельзя отменить.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/delete_all_addresses', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert(result.message, 'success');
+                    
+                    // Очищаем выбранные точки
+                    selectedPoints.clear();
+                    document.querySelectorAll('.form-check-input:checked').forEach(cb => cb.checked = false);
+                    updateSelectionCount();
+                    
+                    // Удаляем маркеры с карты
+                    addressMarkers.forEach(m => map.removeLayer(m.marker));
+                    addressMarkers = [];
+                    
+                    // Перезагружаем список адресов
+                    await reloadAddressesFromServer();
+                    
+                } else {
+                    showAlert('Ошибка: ' + result.error, 'danger');
+                }
+                
+            } catch (error) {
+                console.error('Ошибка удаления всех адресов:', error);
+                showAlert('Ошибка удаления всех адресов: ' + error.message, 'danger');
+            }
+        }
+
+        // === ПОСТРОЕНИЕ МАРШРУТА ===
+        
+        /**
+         * Построение маршрута с использованием автомобильных дорог
+         */
+        document.getElementById('optimizeBtn').addEventListener('click', async function() {
+            if (selectedPoints.size === 0) {
+                showAlert('Выберите хотя бы одну точку', 'warning');
+                return;
+            }
+
+            const btn = this;
+            const spinner = document.getElementById('optimizeSpinner');
+            
+            btn.disabled = true;
+            spinner.classList.remove('d-none');
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Построение маршрута...';
+            
+            try {
+                // Получаем состояние переключателя пробок
+                const avoidTraffic = document.getElementById('avoidTraffic').checked;
+                
+                if (avoidTraffic) {
+                    showAlert('Построение маршрута с учетом пробок...', 'info');
+                } else {
+                    showAlert('Построение маршрута без учета пробок...', 'info');
+                }
+                
+                const response = await fetch('/optimize', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        points: Array.from(selectedPoints.keys()),
+                        user_location: userLocation,
+                        avoid_traffic: avoidTraffic  // Передаем настройку на сервер
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Строим маршрут по автомобильным дорогам
+                    await buildCarRoute();
+                    
+                    // Обновляем статистику и расписание
+                    updateRouteStats({
+                        total_points: result.total_points,
+                        total_distance: result.total_distance,
+                        total_time: result.total_time
+                    });
+                    
+                    // Создаем расписание из ответа сервера
+                    displaySchedule(result.schedule);
+                    
+                    document.getElementById('resultsCard').style.display = 'block';
+                    
+                    showAlert(`Маршрут построен! ${result.total_points} точек, ${result.total_distance} км, ${result.total_time} ч`, 'success');
+                    
+                    // Отображаем информацию о пробках
+                    if (result.traffic_info) {
+                        displayTrafficInfo(result.traffic_info);
+                    } else {
+                        document.getElementById('trafficInfo').style.display = 'none';
+                    }
+                    
+                    // Прокручиваем к результатам
+                    document.getElementById('resultsCard').scrollIntoView({ 
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                    
+                } else {
+                    showAlert('Ошибка: ' + result.error, 'danger');
+                }
+                
+            } catch (error) {
+                console.error('Ошибка построения маршрута:', error);
+                showAlert('Ошибка построения маршрута: ' + error.message, 'danger');
+            } finally {
+                btn.disabled = false;
+                spinner.classList.add('d-none');
+                btn.innerHTML = '🚀 Построить оптимальный маршрут';
+            }
+        });
+
+        /**
+         * Построение автомобильного маршрута с использованием OSRM
+         * @returns {Promise} Промис построения маршрута
+         */
+        function buildCarRoute() {
+            return new Promise((resolve, reject) => {
+                // Очищаем предыдущий маршрут
+                if (routingControl) {
+                    map.removeControl(routingControl);
+                }
+                
+                if (routeLayer) {
+                    map.removeLayer(routeLayer);
+                }
+                
+                // Удаляем временные маркеры выбора
+                addressMarkers.forEach(m => map.removeLayer(m.marker));
+                addressMarkers = [];
+
+                // Создаем точки маршрута
+                const waypoints = Array.from(selectedPoints.values()).map(address => 
+                    L.latLng(address.lat, address.lon)
+                );
+
+                // Добавляем стартовую точку (местоположение пользователя) в начало
+                waypoints.unshift(L.latLng(userLocation[0], userLocation[1]));
+
+                // Создаем маршрут с использованием OSRM (Open Source Routing Machine)
+                routingControl = L.Routing.control({
+                    waypoints: waypoints,
+                    routeWhileDragging: false,
+                    show: false,
+                    showAlternatives: false,
+                    lineOptions: {
+                        styles: [{color: '#1e88e5', weight: 6, opacity: 0.8}]
+                    },
+                    createMarker: function(i, waypoint, n) {
+                        if (i === 0) {
+                            // Стартовая точка - местоположение пользователя
+                            return L.marker(waypoint.latLng, {
+                                icon: L.divIcon({
+                                    html: '<div class="custom-marker" style="border-color: #4CAF50; color: white; background: #4CAF50">🚗</div>',
+                                    iconSize: [30, 30],
+                                    className: 'custom-marker'
+                                })
+                            }).bindPopup('📍 <strong>Ваше местоположение</strong><br>Начало маршрута');
+                        } else {
+                            // Остальные точки
+                            const address = Array.from(selectedPoints.values())[i-1];
+                            return L.marker(waypoint.latLng, {
+                                icon: L.divIcon({
+                                    html: `<div class="custom-marker" style="border-color: ${address.client_type === 'VIP' ? '#FF9800' : '#1e88e5'}; color: black; background: white">${i}</div>`,
+                                    iconSize: [30, 30],
+                                    className: 'custom-marker'
+                                })
+                            }).bindPopup(`
+                                <strong>${address.address}</strong><br>
+                                <span class="badge ${address.client_type === 'VIP' ? 'bg-warning' : 'bg-secondary'}">
+                                    ${address.client_type === 'VIP' ? 'VIP' : 'Standard'}
+                                </span><br>
+                                ⏰ ${address.work_time_start}-${address.work_time_end}<br>
+                                🍽️ ${address.lunch_start}-${address.lunch_end}
+                            `);
+                        }
+                    },
+                    router: L.Routing.osrmv1({
+                        serviceUrl: 'https://router.project-osrm.org/route/v1'
+                    })
+                }).addTo(map);
+
+                // Обработчик завершения построения маршрута
+                routingControl.on('routesfound', function(e) {
+                    const routes = e.routes;
+                    if (routes && routes.length > 0) {
+                        const route = routes[0];
+                        const totalDistance = (route.summary.totalDistance / 1000).toFixed(1);
+                        const totalTime = (route.summary.totalTime / 3600).toFixed(1);
+                        
+                        // Обновляем статистику
+                        updateRouteStats({
+                            total_points: selectedPoints.size,
+                            total_distance: totalDistance,
+                            total_time: totalTime
+                        });
+                        
+                        // Создаем расписание
+                        const schedule = createSchedule(Array.from(selectedPoints.values()));
+                        displaySchedule(schedule);
+                        
+                        document.getElementById('resultsCard').style.display = 'block';
+                        
+                        showAlert(`Маршрут построен! ${selectedPoints.size} точек, ${totalDistance} км, ${totalTime} ч`, 'success');
+                        
+                        // Прокручиваем к результатам
+                        document.getElementById('resultsCard').scrollIntoView({ 
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                        
+                        resolve();
+                    } else {
+                        reject(new Error('Не удалось построить маршрут'));
+                    }
+                });
+
+                // Обработчик ошибок
+                routingControl.on('routingerror', function(e) {
+                    reject(new Error('Ошибка построения маршрута: ' + e.error.message));
+                });
+            });
+        }
+
+        /**
+         * Создание расписания посещений
+         * @param {Array} addresses - Массив адресов
+         * @returns {Array} Массив объектов расписания
+         */
+        function createSchedule(addresses) {
+            const schedule = [];
+            let currentTime = new Date();
+            currentTime.setHours(9, 0, 0, 0); // Начинаем в 9:00
+
+            addresses.forEach((address, index) => {
+                const arrivalTime = new Date(currentTime);
+                const departureTime = new Date(arrivalTime);
+                
+                // Добавляем время на дорогу (примерно 30 минут между точками)
+                if (index > 0) {
+                    arrivalTime.setMinutes(arrivalTime.getMinutes() + 30);
+                }
+                
+                // Время посещения (45 минут для VIP, 30 для стандартных)
+                const visitDuration = address.client_type === 'VIP' ? 45 : 30;
+                departureTime.setMinutes(arrivalTime.getMinutes() + visitDuration);
+                
+                schedule.push({
+                    date: new Date().toLocaleDateString('ru-RU'),
+                    order: index + 1,
+                    arrival_time: arrivalTime.toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'}),
+                    departure_time: departureTime.toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'}),
+                    address: address.address,
+                    client_type: address.client_type,
+                    duration: visitDuration.toString(),
+                    lunch_time: `${address.lunch_start}-${address.lunch_end}`
+                });
+                
+                // Обновляем текущее время для следующей точки
+                currentTime = new Date(departureTime);
+            });
+
+            return schedule;
+        }
+
+        /**
+         * Отображение расписания в интерфейсе
+         * @param {Array} schedule - Массив расписания
+         */
+        function displaySchedule(schedule) {
+            const container = document.getElementById('schedule');
+            container.innerHTML = '';
+
+            if (schedule.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-muted py-4">
+                        <div style="font-size: 48px;">📅</div>
+                        <p>Нет данных для отображения</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let currentDate = '';
+            
+            schedule.forEach(item => {
+                if (item.date !== currentDate) {
+                    currentDate = item.date;
+                    const dateHeader = document.createElement('div');
+                    dateHeader.className = 'schedule-date-header';
+                    dateHeader.innerHTML = `
+                        <div class="text-center bg-primary text-white py-2 mb-2 rounded">
+                            <strong>📅 ${currentDate}</strong>
+                        </div>
+                    `;
+                    container.appendChild(dateHeader);
+                }
+
+                const div = document.createElement('div');
+                div.className = `schedule-item ${item.client_type?.toLowerCase()}`;
+                div.innerHTML = `
+                    <div class="schedule-order">${item.order}</div>
+                    <div class="schedule-content">
+                        <div class="schedule-time">
+                            <strong>${item.arrival_time} - ${item.departure_time}</strong>
+                        </div>
+                        <div class="schedule-address">${item.address}</div>
+                        <div class="schedule-meta">
+                            <span class="duration">${item.duration} мин</span>
+                            <span class="badge ${item.client_type === 'VIP' ? 'bg-warning' : 'bg-secondary'}">
+                                ${item.client_type === 'VIP' ? 'VIP' : 'Standard'}
+                            </span>
+                            <small class="text-muted ms-2">
+                                🍽️ ${item.lunch_time}
+                            </small>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        /**
+         * Обновление статистики маршрута
+         * @param {Object} result - Результат с данными статистики
+         */
+        function updateRouteStats(result) {
+            document.getElementById('totalPoints').textContent = result.total_points;
+            document.getElementById('totalDistance').textContent = result.total_distance;
+            document.getElementById('totalTime').textContent = result.total_time;
+        }
+
+        /**
+         * Отображение информации о пробках
+         * @param {Object} trafficInfo - Информация о пробках
+         */
+        function displayTrafficInfo(trafficInfo) {
+            const trafficDiv = document.getElementById('trafficInfo');
+            const detailsDiv = document.getElementById('trafficDetails');
+            
+            if (trafficInfo) {
+                let html = '';
+                
+                // Основной статус
+                if (trafficInfo.has_traffic || trafficInfo.has_incidents) {
+                    html += `<div class="traffic-status mb-3">
+                        <div class="alert ${trafficInfo.level === 'very_high' ? 'alert-danger' : 
+                                         trafficInfo.level === 'high' ? 'alert-warning' : 
+                                         trafficInfo.level === 'medium' ? 'alert-info' : 'alert-success'}">
+                            <strong>🚦 Дорожная ситуация:</strong><br>
+                            ${trafficInfo.has_traffic ? '🔴 Обнаружены пробки' : '🟢 Пробок не обнаружено'}<br>
+                            ${trafficInfo.has_incidents ? '🚧 Обнаружены дорожные инциденты' : '✅ ДТП и перекрытий не обнаружено'}
+                        </div>
+                    </div>`;
+                }
+                
+                // Детальная информация
+                html += `<div class="traffic-details">`;
+                
+                if (trafficInfo.details && trafficInfo.details.length > 0) {
+                    html += `<h6>📊 Детальная информация:</h6>`;
+                    trafficInfo.details.forEach(detail => {
+                        html += `<div class="traffic-detail-item">• ${detail}</div>`;
+                    });
+                }
+                
+                // Влияние на маршрут
+                if (trafficInfo.traffic_impact) {
+                    html += `<div class="traffic-impact mt-2 p-2 bg-light rounded">
+                        <strong>⏱️ Влияние на маршрут:</strong> Время в пути увеличено на ${trafficInfo.traffic_impact}
+                    </div>`;
+                }
+                
+                html += `</div>`;
+                
+                detailsDiv.innerHTML = html;
+                trafficDiv.style.display = 'block';
+                
+                // Показываем уведомление
+                if (trafficInfo.has_traffic) {
+                    showAlert(`🚦 Обнаружены пробки! Уровень: ${getTrafficLevelText(trafficInfo.level)}`, 
+                             trafficInfo.level === 'very_high' ? 'danger' : 'warning');
+                } else {
+                    showAlert('🟢 Пробок не обнаружено, движение свободное', 'success');
+                }
+                
+            } else {
+                trafficDiv.style.display = 'none';
+            }
+        }
+
+        // === ЭКСПОРТ ДАННЫХ ===
+        
+        /**
+         * Экспорт расписания в CSV
+         */
+        document.getElementById('exportBtn').addEventListener('click', function() {
+            const scheduleItems = document.querySelectorAll('.schedule-item');
+            
+            if (scheduleItems.length === 0) {
+                showAlert('Нет данных для экспорта', 'warning');
+                return;
+            }
+
+            let csvContent = "Дата;Порядок;Время прибытия;Время убытия;Адрес;Тип клиента;Длительность;Обеденное время\n";
+            
+            let currentDate = '';
+            scheduleItems.forEach(item => {
+                const dateHeader = item.previousElementSibling;
+                if (dateHeader && dateHeader.classList.contains('schedule-date-header')) {
+                    const dateMatch = dateHeader.textContent.match(/\d{2}\.\d{2}\.\d{4}/);
+                    if (dateMatch) {
+                        currentDate = dateMatch[0];
+                    }
+                }
+                
+                const order = item.querySelector('.schedule-order').textContent;
+                const arrival = item.querySelector('.schedule-time strong').textContent.split(' - ')[0];
+                const departure = item.querySelector('.schedule-time strong').textContent.split(' - ')[1];
+                const address = item.querySelector('.schedule-address').textContent;
+                const clientType = item.querySelector('.badge').textContent;
+                const duration = item.querySelector('.duration').textContent;
+                const lunchTime = item.querySelector('.text-muted').textContent.replace('🍽️ ', '');
+                
+                csvContent += `"${currentDate}";"${order}";"${arrival}";"${departure}";"${address}";"${clientType}";"${duration}";"${lunchTime}"\n`;
+            });
+            
+            const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `маршрут_${new Date().toLocaleDateString('ru-RU')}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            showAlert('Маршрут экспортирован в CSV файл', 'success');
+        });
+
+        // === ФИЛЬТРАЦИЯ И ПОИСК ===
+        
+        /**
+         * Поиск адресов в списке
+         */
+        document.getElementById('addressSearch').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase().trim();
+            const addressItems = document.querySelectorAll('.address-item');
+            
+            addressItems.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                item.style.display = text.includes(searchTerm) ? 'block' : 'none';
+            });
+        });
+
+        /**
+         * Фильтрация по типу клиента
+         */
+        document.getElementById('clientTypeFilter').addEventListener('change', function(e) {
+            const filter = e.target.value;
+            const addressItems = document.querySelectorAll('.address-item');
+            
+            addressItems.forEach(item => {
+                if (filter === 'all') {
+                    item.style.display = 'block';
+                } else {
+                    const isVip = item.classList.contains('vip');
+                    const shouldShow = (filter === 'vip' && isVip) || (filter === 'standard' && !isVip);
+                    item.style.display = shouldShow ? 'block' : 'none';
+                }
+            });
+        });
+
+        // === ИМПОРТ ДАННЫХ ===
+        
+        /**
+         * Загрузка CSV файла с адресами
+         */
+        document.getElementById('uploadCsvBtn').addEventListener('click', async function() {
+            const fileInput = document.getElementById('csvFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showAlert('Выберите CSV файл', 'warning');
+                return;
+            }
+            
+            const btn = this;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Загрузка...';
+            btn.disabled = true;
+            
+            try {
+                const formData = new FormData();
+                formData.append('csv_file', file);
+                
+                const response = await fetch('/upload_addresses', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert(result.message, 'success');
+                    document.getElementById('importStatus').innerHTML = `
+                        <div class="alert alert-success">
+                            <strong>✅ Успешно!</strong><br>
+                            ${result.message}<br>
+                            Всего адресов: ${result.total_addresses}
+                            ${result.backup_created ? '<br><small>Создан бэкап предыдущего файла</small>' : ''}
+                        </div>
+                    `;
+                    
+                    // Перезагружаем список адресов
+                    await loadAddresses();
+                    
+                    // Очищаем поле
+                    fileInput.value = '';
+                    
+                } else {
+                    showAlert('Ошибка: ' + result.error, 'danger');
+                    document.getElementById('importStatus').innerHTML = `
+                        <div class="alert alert-danger">
+                            <strong>❌ Ошибка:</strong> ${result.error}
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('Ошибка загрузки файла:', error);
+                showAlert('Ошибка загрузки файла: ' + error.message, 'danger');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        });
+
+        /**
+         * Добавление одной точки
+         */
+        document.getElementById('addSingleAddressBtn').addEventListener('click', async function() {
+            const address = document.getElementById('newAddress').value.trim();
+            const lat = parseFloat(document.getElementById('newLat').value);
+            const lon = parseFloat(document.getElementById('newLon').value);
+            const clientType = document.getElementById('newClientType').value;
+            
+            if (!address) {
+                showAlert('Введите адрес', 'warning');
+                return;
+            }
+            
+            if (isNaN(lat) || isNaN(lon)) {
+                showAlert('Введите корректные координаты', 'warning');
+                return;
+            }
+            
+            const btn = this;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Добавление...';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch('/add_single_address', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        address: address,
+                        lat: lat,
+                        lon: lon,
+                        client_type: clientType,
+                        work_time_start: '09:00',
+                        work_time_end: '18:00',
+                        lunch_start: '13:00',
+                        lunch_end: '14:00'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert(result.message, 'success');
+                    document.getElementById('importStatus').innerHTML = `
+                        <div class="alert alert-success">
+                            <strong>✅ Успешно!</strong><br>
+                            ${result.message}<br>
+                            Всего адресов: ${result.total_addresses}
+                        </div>
+                    `;
+                    
+                    // Очищаем форму
+                    document.getElementById('newAddress').value = '';
+                    document.getElementById('newLat').value = '';
+                    document.getElementById('newLon').value = '';
+                    
+                    // Перезагружаем список адресов из сервера
+                    await reloadAddressesFromServer();
+                    
+                } else {
+                    showAlert('Ошибка: ' + result.error, 'danger');
+                    document.getElementById('importStatus').innerHTML = `
+                        <div class="alert alert-danger">
+                            <strong>❌ Ошибка:</strong> ${result.error}
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('Ошибка добавления адреса:', error);
+                showAlert('Ошибка добавления адреса: ' + error.message, 'danger');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        });
+
+        /**
+         * Перезагрузка адресов с сервера
+         */
+        async function reloadAddressesFromServer() {
+            try {
+                // Получаем обновленный список адресов с сервера
+                const response = await fetch('/get_addresses');
+                if (!response.ok) {
+                    throw new Error('Ошибка загрузки адресов с сервера');
+                }
+                
+                const addresses = await response.json();
+                
+                // Обновляем локальный массив адресов
+                allAddresses = addresses;
+                
+                // Обновляем список в интерфейсе
+                populateAddressList(addresses);
+                populateDeleteAddressSelect(addresses);
+                updateFileInfo(addresses.length);
+                
+                console.log('✅ Адресы перезагружены с сервера:', addresses.length);
+                
+            } catch (error) {
+                console.error('❌ Ошибка перезагрузки адресов:', error);
+                showAlert('Ошибка обновления списка адресов', 'danger');
+            }
+        }
+
+        /**
+         * Настройка клика по карте для быстрого добавления координат
+         */
+        function setupMapClickForNewAddress() {
+            if (map) {
+                map.on('click', function(e) {
+                    document.getElementById('newLat').value = e.latlng.lat.toFixed(6);
+                    document.getElementById('newLon').value = e.latlng.lng.toFixed(6);
+                    showAlert('Координаты установлены по клику на карте', 'info');
+                });
+            }
+        }
+
+        // === ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ ===
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Инициализация приложения с Leaflet...');
+            initMap();
+            loadAddresses();
+            
+            // Назначаем обработчики
+            document.getElementById('updateLocationBtn').addEventListener('click', getUserLocation);
+            document.getElementById('clearSelectionBtn').addEventListener('click', function() {
+                selectedPoints.clear();
+                document.querySelectorAll('.form-check-input:checked').forEach(cb => cb.checked = false);
+                updateSelectionCount();
+                
+                // Удаляем временные маркеры
+                addressMarkers.forEach(m => map.removeLayer(m.marker));
+                addressMarkers = [];
+                
+                // Удаляем маршрут
+                if (routingControl) {
+                    map.removeControl(routingControl);
+                    routingControl = null;
+                }
+                if (routeLayer) {
+                    map.removeLayer(routeLayer);
+                    routeLayer = null;
+                }
+                
+                showAlert('Выбор очищен', 'info');
+            });
+
+            // Обработчики для удаления точек
+            document.getElementById('deleteAddressSelect').addEventListener('change', updateDeleteButtonState);
+            document.getElementById('deleteAddressBtn').addEventListener('click', function() {
+                const select = document.getElementById('deleteAddressSelect');
+                const addressId = parseInt(select.value);
+                if (addressId) {
+                    deleteAddress(addressId);
+                }
+            });
+            document.getElementById('deleteAllAddressesBtn').addEventListener('click', deleteAllAddresses);
+
+            // Настройка клика по карте для быстрого добавления координат
+            setupMapClickForNewAddress();
+        });
+    </script>
+</body>
+</html>
