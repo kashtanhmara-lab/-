@@ -2,7 +2,7 @@ flask==2.3.3
 folium==0.14.0
 geopy==2.3.0
 pandas==2.0.3
+numpy==1.24.3
 requests==2.31.0
-numpy==1.25.2
-scipy==1.10.1
-ortools==9.7.2996
+gunicorn==21.2.0
+setuptools==68.2.2
